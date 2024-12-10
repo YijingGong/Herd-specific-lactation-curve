@@ -156,12 +156,12 @@ def method2(year, region, milking_frequency, AHMP, parity_structure_pct, num_mil
     plt.legend() 
     plt.show()
 
-### METHOD1 ###
+### METHOD1 EXAMPLE ###
 milking_frequency = '3x/d' # Either '2x/d' or '3x/d'
 region = 'New York' 
-# method1('2016', region, milking_frequency)
+method1('2016', region, milking_frequency)
 
-### METHOD2 ###
+### METHOD2 EXAMPLE  ###
 parity_structure_pct = (0.359525, 0.263485, 0.3769925)
 num_milking_cows = 1284
 AHMP = 18405332   # Unit: kg
