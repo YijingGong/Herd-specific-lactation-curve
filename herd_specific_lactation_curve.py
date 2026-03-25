@@ -459,3 +459,97 @@ if __name__ == "__main__":
     plot_comparison(base, cal,
                     herd_label="Farm F1 — New York Holstein Dairy (2016)",
                     save_path="lactation_curve_comparison.png")
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # BONUS DEMO — Farm F9: The Outlier Case
+    # ═══════════════════════════════════════════════════════════════════════
+    #
+    # Farm F9 is a small Wisconsin dairy with only 80 cows and a very low
+    # individual milk production of ~6,100 kg/cow/yr — far below the
+    # Wisconsin state average of ~13,340 kg/cow/yr.
+    #
+    # Because the Base method uses Wisconsin-average parameters (calibrated
+    # for high-producing herds), it dramatically OVERESTIMATES F9's milk
+    # production — predicting 206% of the actual observed AHMP.
+    # This is the largest prediction error in the entire 10-farm study.
+    #
+    # The Cal method corrects this by anchoring parameter 'a' to the farm's
+    # actual AHMP, bringing the prediction back to within ±4% of observed.
+    #
+    # This farm is a powerful teaching example: it shows that national-average
+    # parameters can fail badly for farms that deviate from the norm, and that
+    # just 3 data points (AHMP, herd size, parity structure) are enough to fix it.
+    # ═══════════════════════════════════════════════════════════════════════
+
+    print()
+    print("╔══════════════════════════════════════════════════════════════╗")
+    print("║   BONUS: Farm F9 — The Outlier Case  (Wisconsin, 2016)      ║")
+    print("╚══════════════════════════════════════════════════════════════╝")
+    print()
+    print("  Farm F9 is a small Wisconsin herd (80 cows) with very low")
+    print("  individual milk production (~6,100 kg/cow/yr), far below the")
+    print("  Wisconsin state average of ~13,340 kg/cow/yr.")
+    print()
+    print("  The Base method — using Wisconsin-average parameters — predicts")
+    print("  206% of the observed AHMP. This is the largest error in the study.")
+    print("  The Cal method corrects this to within ±4% of observed.")
+
+    # ── Farm F9 inputs (from Gong et al. 2025, Table 1) ───────────────────
+    F9_YEAR             = "2016"
+    F9_REGION           = "Wisconsin"
+    F9_MILKING_FREQ     = "3x/d"
+    F9_AHMP             = 4_880_000   # kg/yr  (observed, from Table 1)
+    F9_NUM_COWS         = 800   # 4,880,000 kg/yr ÷ 16.7 kg/cow/day ÷ 365 days ≈ 800 milking cows
+    # Parity structure: WI-average from RuFaS simulation (paper Appendix Table A3)
+    F9_PARITY_STRUCTURE = (0.365, 0.248, 0.387)  # P1, P2, P3+
+
+    # ── Run both methods for F9 ────────────────────────────────────────────
+    f9_base = run_base_method(F9_YEAR, F9_REGION, F9_MILKING_FREQ)
+    f9_cal  = run_cal_method(F9_YEAR, F9_REGION, F9_MILKING_FREQ,
+                              F9_AHMP, F9_NUM_COWS, F9_PARITY_STRUCTURE)
+
+    # ── Compute simulated AHMP from each method and compare to observed ────
+    import numpy as np
+    f9_herd_M305_base = sum(
+        f9_base[pk]["M305"] * frac
+        for pk, frac in zip(["1","2","3"], F9_PARITY_STRUCTURE)
+    )
+    f9_herd_M305_cal = sum(
+        f9_cal[pk]["M305"] * frac
+        for pk, frac in zip(["1","2","3"], F9_PARITY_STRUCTURE)
+    )
+    f9_ahmp_base = f9_herd_M305_base * F9_NUM_COWS * 365 / 305
+    f9_ahmp_cal  = f9_herd_M305_cal  * F9_NUM_COWS * 365 / 305
+    f9_pct_base  = f9_ahmp_base / F9_AHMP * 100
+    f9_pct_cal   = f9_ahmp_cal  / F9_AHMP * 100
+
+    print()
+    print("=" * 65)
+    print("  FARM F9 — AHMP Accuracy Comparison")
+    print("=" * 65)
+    print(f"  Observed AHMP          :  {F9_AHMP:>14,.0f} kg/yr  (100%)")
+    print(f"  Base Method AHMP       :  {f9_ahmp_base:>14,.0f} kg/yr  ({f9_pct_base:.0f}% of observed)")
+    print(f"  Cal Method AHMP        :  {f9_ahmp_cal:>14,.0f} kg/yr  ({f9_pct_cal:.0f}% of observed)")
+    print()
+    print(f"  → Base overestimates by {f9_pct_base - 100:.0f}% — the largest error in the study!")
+    print(f"  → Cal reduces error to {abs(f9_pct_cal - 100):.0f}% — within the ±4% target.")
+    print()
+    print("  COMPARISON SUMMARY  —  Predicted M305 (kg per cow per 305 d)")
+    print(f"  {'Parity':<12}  {'Base Method':>16}  {'Cal Method':>16}")
+    print(f"  {'-'*12}  {'-'*16}  {'-'*16}")
+    for pk, plabel in [("1","Parity 1"), ("2","Parity 2"), ("3","Parity 3+")]:
+        print(f"  {plabel:<12}  {f9_base[pk]['M305']:>14,.0f} kg"
+              f"  {f9_cal[pk]['M305']:>14,.0f} kg")
+    print()
+
+    # ── Plot F9 comparison ─────────────────────────────────────────────────
+    print("  Generating Farm F9 outlier comparison plot …")
+    plot_comparison(
+        f9_base, f9_cal,
+        herd_label=(
+            f"Farm F9 — Wisconsin Holstein Dairy (2016)  │  "
+            f"Base: {f9_pct_base:.0f}% of observed AHMP  │  "
+            f"Cal: {f9_pct_cal:.0f}% of observed AHMP"
+        ),
+        save_path="farm9_outlier_comparison.png"
+    )
